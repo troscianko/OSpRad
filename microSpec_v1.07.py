@@ -1,3 +1,23 @@
+#
+#  Open source spectroradiometer (OSpRad)
+#
+#  Written by Jolyon Troscianko 2022
+#
+#	Relseased with GPL-3.0 license
+#
+#  Project home: https://github.com/troscianko/OSpRad/
+#
+# This code is designed to run from either a linux desktop computer, or
+# on a smartphone via the "Pydroid 3" app. Note the dependences below that
+# need to be installed via pip.
+#
+# tkinter, matplotlib, serial, and for android only: usb4a, usbserial4a 
+#
+#
+#
+#
+#
+
 from tkinter import *
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg

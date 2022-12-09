@@ -1,0 +1,362 @@
+
+/*
+ * Written by Jolyon Troscianko - 2022
+ *
+ *
+ * Released under GPL-3.0 license
+ * 
+ * This code is developed for the Arduino nano, tested with Elegoo units and unbranded
+ * open this code in Arduino IDE to upload to the Arduino.
+ * use old bootloader 328p if the normal one doesn't work
+ * 
+ * Project home: https://github.com/troscianko/OSpRad
+ * Code also inspired by this project: https://impfs.github.io/review/
+ * C12880MA datasheet: https://www.farnell.com/datasheets/2822646.pdf
+ * 
+ */
+
+
+
+#include <Servo.h>
+Servo myservo;  // create servo object to control a servo
+
+
+
+
+// THESE FOUR VALUES NEED TO BE CHANGED FOR YOUR INDIVIDUAL UNIT:
+
+
+int unitNumber = 1; // Add a unit-specific number here. This number is looked up for applying calibration data
+
+// To set these wheel positions, build your unit, upload this code, then use the serial monitor Baud Rate set to 115200
+// write "w98" to manually contorl the shutter wheel
+int posDark = 98; // angle for dark measurement
+int posIrr = 146; // angle for irradiance (cosine diffuser)
+int posRad = 57; // angle for radiance measurement (clear)
+
+
+
+
+
+
+int servoDelay = 300; // millisecond delay for servo to move
+int servoDetachDelay = 1500; // millisecond delay for servo to detach (causes feedback and noisy measurements)
+int servoPin = 8;
+
+#define TRGpin A0
+#define STpin A1
+#define CLKpin A2
+#define VIDEOpin A3
+
+#define nSites 288 // 
+uint16_t data[nSites] [2];
+int dataSaveDim = 0;
+
+int delayTime = 1;
+long intTime = 100;
+long prevIntTime = 100;
+long maxAutoIntTime = 5000;
+long maxIntTime = 60000; // maximum integration time for auto-measurement
+long manIntTime = 0;
+int satN = 0; // number of bands over-exposed
+int satVal = 1000; // over-exposure value
+int satSum = 0;
+int maxVal = 0;
+int prevMaxVal = 0;
+
+int nScansMax = 50; // 65535 is the max uint16 data value, so can only deal with about 60 max
+int nScansMin = 3;
+long sampleTimeMax = 1000; // target sampling time for repeat scans
+int nScans = 1;
+int measureType = 0;
+
+
+void setup(){
+  //myservo.attach(servoPin);  // attaches the servo on pin 9 to the servo object
+
+  //Set desired pins to OUTPUT
+  pinMode(CLKpin, OUTPUT);
+  pinMode(STpin, OUTPUT);
+
+  digitalWrite(CLKpin, HIGH);
+  digitalWrite(STpin, LOW);
+
+  Serial.begin(115200); // Baud Rate set to 115200
+  while (! Serial); // Wait untilSerial is ready
+  //Serial.println("i = irradiance measure, r = radiance measure, n# = minimum number of scans");
+  readSpectrometer();
+  resetData();
+}
+
+void readSpectrometer(){
+
+  // Start clock cycle and set start pulse to signal start
+  digitalWrite(CLKpin, LOW);
+  delayMicroseconds(delayTime);
+  digitalWrite(CLKpin, HIGH);
+  delayMicroseconds(delayTime);
+  digitalWrite(CLKpin, LOW);
+  digitalWrite(STpin, HIGH);
+  delayMicroseconds(delayTime);
+
+  unsigned long cTime = millis(); // start time
+  unsigned long eTime = cTime + intTime; // end time
+  
+  //Sample for a period of time
+ // for(int i = 0; i < 15; i++){ //orig 15
+ while(cTime < eTime){
+      digitalWrite(CLKpin, HIGH);
+      delayMicroseconds(delayTime);
+      digitalWrite(CLKpin, LOW);
+      delayMicroseconds(delayTime);
+      cTime=millis();
+  }
+
+  //Set STpin to low
+  digitalWrite(STpin, LOW);
+
+  //Sample for a period of time
+  for(int i = 0; i < 88; i++){ //87 aligns correctly
+
+      digitalWrite(CLKpin, HIGH);
+      delayMicroseconds(delayTime);
+      digitalWrite(CLKpin, LOW);
+      delayMicroseconds(delayTime); 
+      
+  }
+
+  int specRead = 0;
+  satN = 0;
+  for(int i = 0; i < nSites; i++){
+
+      specRead = analogRead(VIDEOpin);
+      // second read shoudl stablise the multiplexer and give more accurate read
+      //delayMicroseconds(delayTime);
+     // specRead = analogRead(VIDEOpin);
+      data[i][dataSaveDim] += specRead;
+      if(specRead > satVal)
+        satN ++;
+      
+      digitalWrite(CLKpin, HIGH);
+      delayMicroseconds(delayTime);
+      digitalWrite(CLKpin, LOW);
+      delayMicroseconds(delayTime);
+        
+  } 
+}
+
+
+
+void resetData(){
+  for (int i = 0; i < nSites; i++)
+    data[i] [dataSaveDim] = 0;
+}
+
+void satTest(){
+  //satN = 0;
+  //maxVal = 0;
+  for (int i = 0; i < nSites; i++){
+    //if(data[i][dataSaveDim] > satVal)
+    //    satN ++;
+    if(data[i][dataSaveDim] > maxVal)
+        maxVal = data[i][dataSaveDim];
+  }
+  
+}
+
+
+void loop(){
+
+
+  
+  String arg = Serial.readString();
+
+  if (arg != NULL){
+
+    // manually set integration time
+    if(arg.startsWith("t") == true){
+      arg.replace("t", "");
+      manIntTime = (long) arg.toFloat();
+      if(manIntTime > maxIntTime)
+          manIntTime = maxIntTime;
+      Serial.println("int. time: " + String(manIntTime) + "ms");
+
+    // change max number of scans
+    } else if(arg.startsWith("a") == true){
+      arg.replace("a", "");
+      nScansMax = (int) arg.toFloat();
+      if(nScansMax < nScansMin)
+        nScansMin = nScansMax;
+      Serial.println("max scans: " + String(nScansMax));
+      delay(100);
+
+    // change min number of scans
+    } else if(arg.startsWith("n") == true){
+      arg.replace("n", "");
+      nScansMin = (int) arg.toFloat();
+      if(nScansMin > nScansMax)
+        nScansMax = nScansMin;
+      Serial.println("min scans: " + String(nScansMin));
+      delay(100);
+
+
+    // manual wheel position
+    } else if(arg.startsWith("w") == true){ // filter wheel position
+        arg.replace("w", "");
+        int wheelAngle = (int) arg.toFloat();
+        myservo.attach(servoPin);
+        myservo.write(wheelAngle);
+        Serial.println("Wheel angle: " + String(wheelAngle));
+        delay(servoDelay);
+        myservo.detach();
+
+    
+    // Spec measure
+    } else if(arg.startsWith("r") == true || arg.startsWith("i") == true){ // radiance
+
+      myservo.attach(servoPin);
+      
+      if(arg.startsWith("r") == true){
+        myservo.write(posRad);
+        measureType = 1;
+      } else {
+        myservo.write(posIrr);
+        measureType = 0;
+      }
+      
+      delay(servoDelay);
+      myservo.detach();
+      delay(servoDetachDelay);
+      nScans = 1;
+
+
+      // reset all data
+      dataSaveDim = 1; // 1= dark, 0=light
+      resetData();
+      dataSaveDim = 0;// must be left as 0 here for code below - temp light data
+      resetData();
+
+      // automatically work out integration time by increasing until saturation point, then estimate ideal value
+      if(manIntTime == 0){
+
+            satN = 0;
+            intTime = 1;
+            prevIntTime = 1;
+            maxVal = 0;
+            
+            resetData(); // reset dim0 data
+            readSpectrometer(); // read to dim0
+            satTest();
+
+            if(satN == 0){ // if initial 1ms scan is over-exposed don't go any further
+
+              while(satN == 0){
+                prevMaxVal = maxVal;
+                prevIntTime = intTime;
+                intTime = intTime*2;
+                if(intTime > maxAutoIntTime) // do not go above max int time (takes ages to measure)
+                  satN = 1;
+                else {
+               // copyData(); // save previous scan to dim1
+                  resetData(); // reset dim0 data
+                  readSpectrometer(); // read to dim0
+                  satTest();
+                }
+                //Serial.println("int:" + String(intTime) + " maxVal:" + String(maxVal));
+  
+                delay(10);
+              }
+              //intTime = prevIntTime; // the longest integration time that didn't saturate
+              resetData();
+              //Serial.println("prevInt:" + String(prevIntTime) + " prevMaxVal:" + String(prevMaxVal));
+              // ensure auto-value isn't too long
+              float tInt = floor(float(prevIntTime*0.9*satVal)/float(prevMaxVal));
+              if(tInt > maxIntTime)
+                  intTime = maxIntTime;
+              else intTime = tInt;
+            }
+            
+      } else { // initial scan with manual integration time
+            intTime = manIntTime;
+      }
+
+
+        nScans = floor(sampleTimeMax/intTime);
+        if(nScans < nScansMin)
+          nScans = nScansMin;
+        if(nScans > nScansMax)
+           nScans = nScansMax;
+
+      satSum = 0;
+
+      //-------------Integration time is short, collect sample data, then dark measurement---------
+      if(intTime < sampleTimeMax){
+
+        dataSaveDim = 1; // light data
+        for(int i=0; i<nScans; i++){ // repeatedly read spec (note one fewer scan than below because one scan is already done above)
+          readSpectrometer();
+          satTest();
+          satSum = satSum + satN;
+          //Serial.println("satN:" + String(satN) + " satSum:" + String(satSum));
+          delay(10);
+        }
+   
+        myservo.attach(servoPin);
+        myservo.write(posDark);
+        delay(servoDelay);
+        myservo.detach();
+        delay(servoDetachDelay);
+        dataSaveDim = 0;// dark data
+        resetData();
+
+        for(int i=0; i<nScans; i++){ // repeatedly read spec
+          readSpectrometer();
+          delay(10);
+       }
+
+      //-------------Integration time is long, take interleaved dark measurements---------
+      } else {
+
+        for(int i=0; i<nScans; i++){
+              // light measuremeant
+              myservo.attach(servoPin);
+              if(measureType == 1){
+                myservo.write(posRad);
+              } else {
+                myservo.write(posIrr);
+              }
+              delay(servoDelay);
+              myservo.detach();
+              delay(servoDetachDelay);
+              dataSaveDim = 1; // light data
+              readSpectrometer(); // add light measurement
+              satTest();
+              satSum = satSum + satN;
+              delay(10);
+
+              myservo.attach(servoPin);
+              myservo.write(posDark);
+              delay(servoDelay);
+              myservo.detach();
+              delay(servoDetachDelay);
+              dataSaveDim = 0; // dark data
+              readSpectrometer(); // add dark measurement
+          
+        }
+        
+      }
+
+      Serial.print(String(unitNumber) + "," + String(measureType) + "," + String(nScans) + "," + String(intTime) + "," + String(float(satSum)/float(nScans))  );
+
+
+      for (int i = 0; i < nSites; i++){
+       Serial.print("," + String((float(data[i][1])-float(data[i][0]  ))/float(nScans)));
+      }
+      Serial.print("\n");
+      delay(50);
+    }
+  }
+
+  delay(10);  
+   
+}

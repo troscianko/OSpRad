@@ -74,3 +74,17 @@ at each photosite.
 You can either measure this yourself for unit-specific linearisation values, or use a template, they are all very similar.
 
 
+## Spectral sensitivity calibration
+
+This requires access to a calibrated light source (with known emission spectra). Measure that source with the OSpRad in radiance and irradiance modes. See the included calibration spreadsheet to see how spectral radiance and irradiance calibration data are created.
+
+Alternatively, you could simply use the included data as a template, but this would cause some error as there are unit-specific spectral sensitivity differences:
+
+## Spectral radiance senstivity:
+![image](https://user-images.githubusercontent.com/53558556/206866994-992bc599-04df-417b-9486-ac40f4764e75.png)
+
+## Spectral irradiance sensitivity:
+![image](https://user-images.githubusercontent.com/53558556/206867013-0940212b-1364-4cf7-a1a8-aa31dc41c986.png)
+
+Note that unit "E" used a coside corrector with a different construction, explaining its lower sensitivity.
+

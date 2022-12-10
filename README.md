@@ -50,25 +50,25 @@ Solder the parts together as shown below. Roughly 10cm lengths of wire should be
 ![Circuit Diagram](https://user-images.githubusercontent.com/53558556/206735133-19c5051f-9946-49dd-95c0-88d3e2ee12a0.png)
 
 ## Arduino code
-Use Arduino IDE to flash the firmware code to the Arduino Nano. There are four numbers in the code that you'll need to change in the supplied code (shown in comments at the top of the script). This is the ID of the unit (each unit needs its own ID so it can look up its calibration data) and the shutter wheel positions that correspond to "closed", "radiance" and "irradiance" measurement positions. Once you've flased the code to the Arduino you can make a serial connection link within Arduino IDE and send "w98" or similar to find the positions that match. Once you've found the positions, update the numbers in the Arduino code and re-flash the Arduino Nano. Now the shutter wheel will move to the correct positions.
+Use Arduino IDE to flash the firmware code to the Arduino Nano. There are four numbers in the code that you'll need to change in the supplied code (shown in comments at the top of the script). This is the ID of the unit (each unit needs its own ID so it can look up its calibration data) and the shutter wheel positions that correspond to "closed", "radiance" and "irradiance" measurement positions. Once you've flased the code to the Arduino you can make a serial connection link within Arduino IDE (baud rate 115200) and send "w90" to the OSpRad. This will move the servo to its central position. You'll now probably need to to remove the shutter wheel and re-attach it with this new position, to get it roughly into the correct place. Next, use the same wheel position function ("w" plus number) to work out the numbers associated with the three required positions. The script contains a range of examples and your numbers should be similar. Once you've found the positions, update the numbers in the Arduino code and re-flash the Arduino Nano. Now the shutter wheel will move to the correct positions.
 
 # Calibration
 Calibration data for each OSpRad unit are stored in calibration_data.csv. This includes:
 
 ## Wavelength calibration
-The coefficients for the equation matching each photosite to its peak wavelength sensitivity are provided by the manufacturer when you purchase the spectrometer chip
+The coefficients for the equation matching each photosite to its peak wavelength sensitivity are provided by the manufacturer when you purchase the spectrometer chip.
 
 ## Linearisation data
 This describes the non-linear relationship between raw photosite ADC count data and linear flux. I found this is described by the function:
 
 c[linear] = c / ( a * ln(( c + 1 ) * b )  )
 
-at each photosite.
+at each photosite. Where c is the raw count value, and a and b are coefficients.
 
-## Example of linearisation model fitting with linear x-axis:
+Example of linearisation model fitting with linear x-axis:
 ![image](https://user-images.githubusercontent.com/53558556/206866765-3232aae8-63bd-4dec-80ab-747c6e76379e.png)
 
-## and logged x-axis to show effects at very low count numbers:
+and logged x-axis to show effects at very low count numbers:
 ![image](https://user-images.githubusercontent.com/53558556/206866771-5d5c5ff3-211b-4721-a19d-9e68e6823c1b.png)
 
 You can either measure this yourself for unit-specific linearisation values, or use a template, they are all very similar.

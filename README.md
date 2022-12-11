@@ -3,7 +3,7 @@
 
 Developed by Jolyon Troscianko - 2022
 
-Reseased under GPL-3.0 license.
+Released under GPL-3.0 license.
 
 This project allows users to build their own low-cost, high-sensitivity spectroradiometer for measuring radiance/irradiance based on the Hamamatsu C12880MA chip.
 
@@ -50,16 +50,22 @@ Solder the parts together as shown below. Roughly 10cm lengths of wire should be
 ![Circuit Diagram](https://user-images.githubusercontent.com/53558556/206735133-19c5051f-9946-49dd-95c0-88d3e2ee12a0.png)
 
 ## Arduino code
-Use Arduino IDE to flash the firmware code to the Arduino Nano. There are four numbers in the code that you'll need to change in the supplied code (shown in comments at the top of the script). This is the ID of the unit (each unit needs its own ID so it can look up its calibration data) and the shutter wheel positions that correspond to "closed", "radiance" and "irradiance" measurement positions. Once you've flased the code to the Arduino you can make a serial connection link within Arduino IDE (baud rate 115200) and send "w90" to the OSpRad. This will move the servo to its central position. You'll now probably need to to remove the shutter wheel and re-attach it with this new position, to get it roughly into the correct place. Next, use the same wheel position function ("w" plus number) to work out the numbers associated with the three required positions. The script contains a range of examples and your numbers should be similar. Once you've found the positions, update the numbers in the Arduino code and re-flash the Arduino Nano. Now the shutter wheel will move to the correct positions.
+Use Arduino IDE to flash the firmware code to the Arduino Nano. There are four numbers in the code that you'll need to change in the supplied code (shown in comments at the top of the script). This is the ID of the unit (each unit needs its own ID so it can look up its calibration data) and the shutter wheel positions that correspond to "closed", "radiance" and "irradiance" measurement positions. Once you've flashed the code to the Arduino you can make a serial connection link within Arduino IDE (baud rate 115200) and send "w90" to the OSpRad. This will move the servo to its central position. Now it's in this position, remove the shutter wheel from the servo and re-attach it in the nearest position to "closed" (central) as possible, to get it roughly into the correct place. Next, use the same wheel position function ("w" plus number) to work out the precise numbers associated with the three required positions. The script contains a range of examples and your numbers should be similar. Once you've found the positions, update the numbers in the Arduino code and re-flash the Arduino Nano. Now the shutter wheel will move to the correct positions.
 
 # Calibration
-Calibration data for each OSpRad unit are stored in calibration_data.csv. This includes:
+Calibration data for each OSpRad unit are stored in calibration_data.csv, using tab delineation. The file takes the following format:
 
-## Wavelength calibration
-The coefficients for the equation matching each photosite to its peak wavelength sensitivity are provided by the manufacturer when you purchase the spectrometer chip.
+![image](https://user-images.githubusercontent.com/53558556/206896550-cf35ebd2-01a4-46ef-b638-2797bc92ab76.png)
 
-## Linearisation data
-This describes the non-linear relationship between raw photosite ADC count data and linear flux. I found this is described by the function:
+The first column stores the unit#. This is the ID given to each unit (flashed to the Arduino Nano, see above). Each unit requires four rows of calibration data
+
+This includes:
+
+## Wavelength calibration "wavCoef"
+[six coefficients required] The coefficients for the equation matching each photosite to its peak wavelength sensitivity are provided by the manufacturer when you purchase the spectrometer chip.
+
+## Linearisation data "linCoefs"
+[two coefficients] This describes the non-linear relationship between raw photosite ADC count data and linear flux. I found this is described by the function:
 
 c[linear] = c / ( a * ln(( c + 1 ) * b )  )
 
@@ -74,17 +80,15 @@ and logged x-axis to show effects at very low count numbers:
 You can either measure this yourself for unit-specific linearisation values, or use a template, they are all very similar.
 
 
-## Spectral sensitivity calibration
-
-This requires access to a calibrated light source (with known emission spectra). Measure that source with the OSpRad in radiance and irradiance modes. See the included calibration spreadsheet to see how spectral radiance and irradiance calibration data are created.
+## Spectral sensitivity calibration "radSens" and "irrSens"
+[288 numbers each] This requires access to a calibrated light source (with known emission spectra). Measure that source with the OSpRad in radiance and irradiance modes. See the included calibration spreadsheet to see how spectral radiance and irradiance calibration data are created.
 
 Alternatively, you could simply use the included data as a template, but this would cause some error as there are unit-specific spectral sensitivity differences:
 
-## Spectral radiance senstivity:
+## Spectral radiance sensitivity:
 ![image](https://user-images.githubusercontent.com/53558556/206866994-992bc599-04df-417b-9486-ac40f4764e75.png)
 
 ## Spectral irradiance sensitivity:
 ![image](https://user-images.githubusercontent.com/53558556/206867013-0940212b-1364-4cf7-a1a8-aa31dc41c986.png)
 
-Note that unit "E" used a coside corrector with a different construction, explaining its lower sensitivity.
-
+Note that unit "E" used a cosine corrector with a different construction, explaining its lower sensitivity.

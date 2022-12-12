@@ -23,8 +23,7 @@ Repeat measurements can be made by ticking the relevant checkbox (for data loggi
 
 ## App running from smart phone
 To run from an Android phone, install Pydroid 3, use pip to install the dependences (this requires an additional app, just follow the on-screen instructions). Then connect the phone to the OSpRad and run the code. Ensure the calibration_data.csv file is in the same directory as this python code. Most modern phones have a USB-C port, so you'll need a USB-C to USB-A (female receptacle). Which is a standard cable. Older phones with a USB-micro port require a USB-micro OTG to USB-mini cable (less common, but easy to buy online).
-![image](https://user-images.githubusercontent.com/53558556/206735393-852fcddf-c2f6-4157-91d9-829ed9c3097c.png)
-
+![image](https://user-images.githubusercontent.com/53558556/207035761-f31efe3d-daf0-49bf-aa4e-54de707b840e.png)
 
 # Construction
 ## Parts list:
